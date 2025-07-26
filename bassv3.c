@@ -53,10 +53,18 @@ void H1() {
     int* P = (int*)D1(I1,4);
     for(int i=0;i<4;i++) {
         int s = socket(AF_INET,SOCK_STREAM,0);
+        if (s < 0) continue;
+        
         struct sockaddr_in a = {0};
         a.sin_family = AF_INET;
         a.sin_port = htons(P[i]);
-        a.sin_addr.s_addr = inet_addr("127.0.0.1");
+        
+        // Fixed network address conversion
+        if (inet_pton(AF_INET, "127.0.0.1", &a.sin_addr) <= 0) {
+            close(s);
+            continue;
+        }
+
         if(connect(s,(struct sockaddr*)&a,sizeof(a))==0) {
             char o[32];
             snprintf(o,32,"%s%d","Port ",P[i]);
@@ -81,6 +89,7 @@ void J1() {
 void N1() {
     DIR* O1 = opendir("/proc");
     if(!O1) return;
+    
     struct dirent* P1;
     while((P1=readdir(O1))) {
         if(P1->d_type==DT_DIR && atoi(P1->d_name)>0) {
