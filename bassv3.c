@@ -1,15 +1,20 @@
+#define _GNU_SOURCE
+#include <features.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/system_properties.h>
 #include <dirent.h>
 #include <time.h>
-#include <sys/socket.h>    // Untuk socket()
-#include <netinet/in.h>    // Untuk sockaddr_in
-#include <arpa/inet.h>     // Untuk inet_addr() - INI SUDAH ADA
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <dlfcn.h>
+#include <netdb.h>
+#include <errno.h>
 
 #define A1 0x55AAFF00
 #define A2 0x33445566
