@@ -6,9 +6,9 @@
 #include <sys/system_properties.h>
 #include <dirent.h>
 #include <time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/socket.h>    // Untuk socket()
+#include <netinet/in.h>    // Untuk sockaddr_in
+#include <arpa/inet.h>     // Untuk inet_addr() - INI SUDAH ADA
 #include <dlfcn.h>
 
 #define A1 0x55AAFF00
