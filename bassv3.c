@@ -15,6 +15,7 @@
 #include <dlfcn.h>
 #include <netdb.h>
 #include <errno.h>
+#include <pthread.h>
 
 #define X1 0x55AAFF00
 #define X2 0x33445566
@@ -30,6 +31,48 @@ char* Z1(const uint8_t* e, size_t l) {
     r[l]=0; return r;
 }
 
+void show_progress(const char* name, int duration_ms) {
+    const int total_blocks = 25;
+    const int delay = duration_ms / total_blocks;
+    
+    printf("\x1B[1;35m\xE2\x95\x91 \x1B[1;36m%s [", name);
+    fflush(stdout);
+    
+    for (int i = 0; i < total_blocks; i++) {
+        usleep(delay * 1000);
+        printf("\x1B[1;33m\xE2\x96\x88");
+        fflush(stdout);
+        
+        // Move cursor back to update percentage
+        if (i < total_blocks - 1) {
+            printf("\x1B[1;36m] %d%%", (i+1)*100/total_blocks);
+            fflush(stdout);
+            printf("\r\x1B[1;35m\xE2\x95\x91 \x1B[1;36m%s [", name);
+            for (int j = 0; j <= i; j++) {
+                printf("\x1B[1;33m\xE2\x96\x88");
+            }
+        }
+    }
+    
+    printf("\x1B[1;36m] 100%%\x1B[0m\n");
+}
+
+void print_header() {
+    printf("\x1B[1;35m╔════════════════════════════════════════════╗\n");
+    printf("\x1B[1;35m║   \x1B[1;33m    R O O T   S C A N N E R   v5    \x1B[1;35m  ║\n");
+    printf("\x1B[1;35m╚════════════════════════════════════════════╝\x1B[0m\n\n");
+}
+
+void print_footer(int detected) {
+    printf("\x1B[1;35m╔════════════════════════════════════════════╗\n");
+    if(detected) {
+        printf("\x1B[1;35m║  \x1B[1;31m✗ ROOT DETECTED! SYSTEM COMPROMISED! \x1B[1;35m ║\n");
+    } else {
+        printf("\x1B[1;35m║   \x1B[1;32m✓ SCAN COMPLETE! NO ROOT FOUND    \x1B[1;35m  ║\n");
+    }
+    printf("\x1B[1;35m╚════════════════════════════════════════════╝\x1B[0m\n");
+}
+
 void A2() {
     char* p1 = Z1((uint8_t*)Y1,15);
     char* p2 = Z1((uint8_t*)Y2,15);
@@ -38,21 +81,27 @@ void A2() {
 }
 
 int B2() {
+    show_progress("Checking SU binary", 1500);
+    
     uint8_t C2[] = {0xA1,0xB2,0xC3,0xD4,0xE5,0xF6};
     char* p = Z1(C2,6);
     int found = 0;
     if(access(p,F_OK)==0) {
         uint8_t m[] = {0x10,0x20,0x30,0x40,0x50};
         char* w = Z1(m,5);
-        printf("%s%s%s","\x1B[1;31m\xE2\x95\x91 \x1B[1;33m",w,"\x1B[0m");
+        printf("\x1B[1;35m║ \x1B[1;31m✗ SU Binary: \x1B[1;33m%s\x1B[0m\n",w);
         free(w);
         found = 1;
+    } else {
+        printf("\x1B[1;35m║ \x1B[1;32m✓ SU Binary: \x1B[1;33mNot detected\x1B[0m\n");
     }
     free(p);
     return found;
 }
 
 int C3() {
+    show_progress("Checking open ports", 1500);
+    
     uint8_t D3[] = {0x31,0x32,0x33,0x34};
     int* P = (int*)Z1(D3,4);
     int found = 0;
@@ -72,31 +121,45 @@ int C3() {
         if(connect(s,(struct sockaddr*)&a,sizeof(a))==0) {
             char o[32];
             snprintf(o,32,"%s%d",Z1((uint8_t[]){0x50,0x6F,0x72,0x74},4),P[i]);
-            printf("%s%s%s","\x1B[1;31m\xE2\x95\x91 \x1B[1;33m",o,"\x1B[0m");
+            printf("\x1B[1;35m║ \x1B[1;31m✗ Open port: \x1B[1;33m%s\x1B[0m\n",o);
             found = 1;
         }
         close(s);
     }
+    
+    if (!found) {
+        printf("\x1B[1;35m║ \x1B[1;32m✓ Open ports: \x1B[1;33mNo suspicious ports\x1B[0m\n");
+    }
+    
     free(P);
     return found;
 }
 
 int D4() {
+    show_progress("Checking boot state", 1500);
+    
     char K1[PROP_VALUE_MAX];
     __system_property_get("ro.boot.verifiedbootstate",K1);
     if(strcmp(K1,Z1((uint8_t[]){0x6F,0x72,0x61,0x6E,0x67,0x65},6))==0) {
         uint8_t L1[] = {0x40,0x50,0x60};
         char* M1 = Z1(L1,3);
-        printf("%s%s%s","\x1B[1;31m\xE2\x95\x91 \x1B[1;33m",M1,"\x1B[0m");
+        printf("\x1B[1;35m║ \x1B[1;31m✗ Boot state: \x1B[1;33m%s\x1B[0m\n",M1);
         free(M1);
         return 1;
     }
+    
+    printf("\x1B[1;35m║ \x1B[1;32m✓ Boot state: \x1B[1;33mNormal\x1B[0m\n");
     return 0;
 }
 
 int E5() {
+    show_progress("Checking processes", 1500);
+    
     DIR* O1 = opendir(Z1((uint8_t[]){0x2F,0x70,0x72,0x6F,0x63},5));
-    if(!O1) return 0;
+    if(!O1) {
+        printf("\x1B[1;35m║ \x1B[1;31m✗ Process check: \x1B[1;33mFailed\x1B[0m\n");
+        return 0;
+    }
     
     int found = 0;
     struct dirent* P1;
@@ -108,7 +171,7 @@ int E5() {
             if(!R1) {
                 uint8_t S1[] = {0x70,0x80,0x90};
                 char* T1 = Z1(S1,3);
-                printf("%s%s%s","\x1B[1;31m\xE2\x95\x91 \x1B[1;33m",T1,"\x1B[0m");
+                printf("\x1B[1;35m║ \x1B[1;31m✗ Process cmdline: \x1B[1;33m%s\x1B[0m\n",T1);
                 free(T1);
                 found = 1;
                 break;
@@ -116,29 +179,40 @@ int E5() {
             fclose(R1);
         }
     }
+    
+    if (!found) {
+        printf("\x1B[1;35m║ \x1B[1;32m✓ Processes: \x1B[1;33mNormal\x1B[0m\n");
+    }
+    
     closedir(O1);
     return found;
 }
 
 int F6() {
+    show_progress("Checking memory maps", 1500);
+    
     FILE *maps = fopen(Z1((uint8_t[]){0x2F,0x70,0x72,0x6F,0x63,0x2F,0x73,0x65,0x6C,0x66,0x2F,0x6D,0x61,0x70,0x73},15),"r");
     if (maps) {
         char line[256];
         while (fgets(line, sizeof(line), maps)) {
             if (strstr(line, Z1((uint8_t[]){0x6A,0x69,0x74},3)) || 
                 strstr(line, Z1((uint8_t[]){0x6D,0x61,0x67,0x69,0x73,0x6B},6))) {
-                printf("%s%s%s","\x1B[1;31m\xE2\x95\x91 \x1B[1;33m",Z1((uint8_t[]){0x5A,0x79,0x67,0x69,0x73,0x6B,0x20,0x48,0x69,0x64,0x64,0x65,0x6E},13),"\x1B[0m");
+                printf("\x1B[1;35m║ \x1B[1;31m✗ Memory maps: \x1B[1;33m%s\x1B[0m\n",
+                       Z1((uint8_t[]){0x5A,0x79,0x67,0x69,0x73,0x6B,0x20,0x48,0x69,0x64,0x64,0x65,0x6E},13));
                 fclose(maps);
                 return 1;
             }
         }
         fclose(maps);
     }
+    
+    printf("\x1B[1;35m║ \x1B[1;32m✓ Memory maps: \x1B[1;33mClean\x1B[0m\n");
     return 0;
 }
 
 void G7() {
-    A2();
+    print_header();
+    
     int detected = 0;
     detected |= B2();
     detected |= C3();
@@ -146,15 +220,15 @@ void G7() {
     detected |= E5();
     detected |= F6();
 
-    printf("%s%s%s","\x1B[1;35m\xE2\x95\x94","\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90","\xE2\x95\x97\n");
+    printf("\x1B[1;35m╠════════════════════════════════════════════╣\n");
     
     if(detected) {
-        printf("%s%s%s","\x1B[1;35m\xE2\x95\x91 \x1B[1;31m","\xE2\x9D\x97 \x52\x4F\x4F\x54 \x54\x45\x52\x44\x45\x54\x45\x4B\x53\x49 \x21 \x48\x41\x54\x49\x2D\x48\x41\x54\x49\x21","\x1B[1;35m \xE2\x95\x91\n");
+        printf("\x1B[1;35m║ \x1B[1;31m✗ ROOT DETECTED! SYSTEM COMPROMISED! \x1B[1;35m║\n");
     } else {
-        printf("%s%s%s","\x1B[1;35m\xE2\x95\x91 \x1B[1;33m","\xE2\x9C\x85 \x54\x49\x44\x41\x4B \x41\x44\x41 \x52\x4F\x4F\x54 \x54\x45\x52\x44\x45\x54\x45\x4B\x53\x49 \x2F\x2F \x41\x54\x41\x55 \x52\x4F\x4F\x54 \x44\x49 \x48\x49\x44\x45 \x53\x41\x4E\x47\x41\x54 \x44\x41\x4C\x41\x4D \x46\x52","\x1B[1;35m \xE2\x95\x91\n");
+        printf("\x1B[1;35m║ \x1B[1;32m✓ SYSTEM CLEAN - NO ROOT DETECTED    \x1B[1;35m║\n");
     }
     
-    printf("%s%s%s","\x1B[1;35m\xE2\x95\x9A","\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90\xE2\x95\x90","\xE2\x95\x9D\x1B[0m\n");
+    print_footer(detected);
 }
 
 int main() {
