@@ -8,6 +8,7 @@
 #include <time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <dlfcn.h>
 
 #define A1 0x55AAFF00
