@@ -43,7 +43,6 @@ void show_progress(const char* name, int duration_ms) {
         printf("\x1B[1;33m\xE2\x96\x88");
         fflush(stdout);
         
-        // Move cursor back to update percentage
         if (i < total_blocks - 1) {
             printf("\x1B[1;36m] %d%%", (i+1)*100/total_blocks);
             fflush(stdout);
@@ -55,6 +54,23 @@ void show_progress(const char* name, int duration_ms) {
     }
     
     printf("\x1B[1;36m] 100%%\x1B[0m\n");
+}
+
+void show_startup_animation() {
+    const char* logo[] = {
+        "\x1B[1;35m╔════════════════════════════════════════════╗",
+        "\x1B[1;35m║  \x1B[1;36m▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  \x1B[1;35m║",
+        "\x1B[1;35m║  \x1B[1;36m▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  \x1B[1;35m║",
+        "\x1B[1;35m║  \x1B[1;33m  R O O T   D E T E C T O R   v 5.0    \x1B[1;35m║",
+        "\x1B[1;35m║  \x1B[1;36m▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  \x1B[1;35m║",
+        "\x1B[1;35m╚════════════════════════════════════════════╝\x1B[0m"
+    };
+    
+    for(int i=0; i<6; i++) {
+        printf("%s\n", logo[i]);
+        usleep(200000);
+    }
+    printf("\n");
 }
 
 void print_header() {
@@ -71,6 +87,56 @@ void print_footer(int detected) {
         printf("\x1B[1;35m║   \x1B[1;32m✓ SCAN COMPLETE! NO ROOT FOUND    \x1B[1;35m  ║\n");
     }
     printf("\x1B[1;35m╚════════════════════════════════════════════╝\x1B[0m\n");
+}
+
+int count_detected(int* results, int count) {
+    int total = 0;
+    for(int i=0; i<count; i++) {
+        if(results[i]) total++;
+    }
+    return total;
+}
+
+void calculate_risk_score(int detected_flags) {
+    int risk_level = detected_flags * 20;
+    printf("\x1B[1;35m╠════════════════════════════════════════════╣\n");
+    printf("\x1B[1;35m║ \x1B[1;36mRisk Level: ");
+    if(risk_level > 60) {
+        printf("\x1B[1;31mCRITICAL (%d%%)", risk_level);
+    } else if(risk_level > 30) {
+        printf("\x1B[1;33mWARNING (%d%%)", risk_level);
+    } else {
+        printf("\x1B[1;32mLOW (%d%%)", risk_level);
+    }
+    printf("\x1B[1;35m ║\n");
+}
+
+void print_results_table(int* results, int count) {
+    printf("\x1B[1;35m╔══════════════════════════════╦═════════════╗\n");
+    printf("\x1B[1;35m║ \x1B[1;36mCheck Point           \x1B[1;35m║ \x1B[1;36mStatus    \x1B[1;35m║\n");
+    printf("\x1B[1;35m╠══════════════════════════════╬═════════════╣\n");
+    
+    char* names[] = {"SU Binary", "Open Ports", "Boot State", "Processes", 
+                    "Memory Maps", "Magisk", "SELinux", "Xposed", "System Integrity"};
+    for(int i=0; i<count; i++) {
+        printf("\x1B[1;35m║ \x1B[1;33m%-22s\x1B[1;35m║ ", names[i]);
+        if(results[i]) {
+            printf("\x1B[1;31m%-11s\x1B[1;35m║\n", "DETECTED");
+        } else {
+            printf("\x1B[1;32m%-11s\x1B[1;35m║\n", "CLEAN");
+        }
+    }
+    printf("\x1B[1;35m╚══════════════════════════════╩═════════════╝\x1B[0m\n");
+}
+
+void log_results(int detected) {
+    time_t now = time(NULL);
+    FILE* log = fopen("root_scan.log", "a");
+    if(log) {
+        fprintf(log, "Scan at: %s", ctime(&now));
+        fprintf(log, "Result: %s\n\n", detected ? "ROOT DETECTED" : "CLEAN");
+        fclose(log);
+    }
 }
 
 void A2() {
@@ -210,25 +276,90 @@ int F6() {
     return 0;
 }
 
+int check_magisk() {
+    show_progress("Scanning Magisk", 1500);
+    char* paths[] = {"/sbin/.magisk", "/data/adb/magisk"};
+    int found = 0;
+    for(int i=0; i<2; i++) {
+        if(access(paths[i], F_OK) == 0) {
+            printf("\x1B[1;35m║ \x1B[1;31m✗ Magisk detected at: \x1B[1;33m%s\x1B[0m\n", paths[i]);
+            found = 1;
+        }
+    }
+    if(!found) {
+        printf("\x1B[1;35m║ \x1B[1;32m✓ Magisk: \x1B[1;33mNot detected\x1B[0m\n");
+    }
+    return found;
+}
+
+void check_system_integrity() {
+    show_progress("System Integrity", 1500);
+    FILE* mount = fopen("/proc/mounts", "r");
+    if(mount) {
+        char line[256];
+        while(fgets(line, sizeof(line), mount)) {
+            if(strstr(line, "/system") && strstr(line, "rw")) {
+                printf("\x1B[1;35m║ \x1B[1;31m✗ System mounted as RW!\x1B[0m\n");
+                fclose(mount);
+                return;
+            }
+        }
+        fclose(mount);
+    }
+    printf("\x1B[1;35m║ \x1B[1;32m✓ System Integrity: \x1B[1;33mOK\x1B[0m\n");
+}
+
+void check_selinux() {
+    show_progress("Checking SELinux", 1000);
+    char* result = Z1((uint8_t[]){0x50,0x65,0x72,0x6D,0x69,0x73,0x73,0x69,0x76,0x65},10);
+    FILE* fp = popen("getenforce", "r");
+    if(fp) {
+        char status[16];
+        if(fgets(status, sizeof(status), fp)) {
+            if(strstr(status, "Disabled") || strstr(status, "Permissive")) {
+                printf("\x1B[1;35m║ \x1B[1;31m✗ SELinux: \x1B[1;33m%s\x1B[0m\n", result);
+            } else {
+                printf("\x1B[1;35m║ \x1B[1;32m✓ SELinux: \x1B[1;33mEnforcing\x1B[0m\n");
+            }
+        }
+        pclose(fp);
+    }
+    free(result);
+}
+
+int check_xposed() {
+    show_progress("Checking Xposed", 1500);
+    void* handle = dlopen("libxposed_art.so", RTLD_NOW);
+    if(handle) {
+        printf("\x1B[1;35m║ \x1B[1;31m✗ Xposed Framework: \x1B[1;33mDetected!\x1B[0m\n");
+        dlclose(handle);
+        return 1;
+    }
+    printf("\x1B[1;35m║ \x1B[1;32m✓ Xposed Framework: \x1B[1;33mNot found\x1B[0m\n");
+    return 0;
+}
+
 void G7() {
+    show_startup_animation();
     print_header();
     
-    int detected = 0;
-    detected |= B2();
-    detected |= C3();
-    detected |= D4();
-    detected |= E5();
-    detected |= F6();
-
+    int results[9] = {0};
+    results[0] = B2();
+    results[1] = C3();
+    results[2] = D4();
+    results[3] = E5();
+    results[4] = F6();
+    results[5] = check_magisk();
+    check_selinux(); // Doesn't return value
+    results[6] = check_xposed();
+    check_system_integrity(); // Doesn't return value
+    
     printf("\x1B[1;35m╠════════════════════════════════════════════╣\n");
+    print_results_table(results, 7);
+    calculate_risk_score(count_detected(results, 7));
+    log_results(count_detected(results, 7));
     
-    if(detected) {
-        printf("\x1B[1;35m║ \x1B[1;31m✗ ROOT DETECTED! SYSTEM COMPROMISED! \x1B[1;35m║\n");
-    } else {
-        printf("\x1B[1;35m║ \x1B[1;32m✓ SYSTEM CLEAN - NO ROOT DETECTED    \x1B[1;35m║\n");
-    }
-    
-    print_footer(detected);
+    print_footer(count_detected(results, 7));
 }
 
 int main() {
