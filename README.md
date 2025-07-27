@@ -1,58 +1,93 @@
-=== BASS ROOT CHECKER - ANTI-CHEAT TOOL ===
-Advanced Root & Cheat Detection for Android Games
 
-[PROTECTION TECHNOLOGY]
-✔ Root Detection (Magisk/SU/Kernel)  
-✔ Memory Tamper Protection  
-✔ Cheat Signature Scanning  
-✔ AI-Powered Behavior Analysis  
+# 🔍 BASS ROOT CHECKER
 
-[MAIN FEATURES]
-◆ ROOT DETECTION:
-  - Magisk v20+ 
-  - SuperSU
-  - Kernel Exploits
-  - Xposed Framework
+![Root Detection](https://img.shields.io/badge/Root%20Detection-Aktif-blueviolet?style=flat-square)
+![Magisk & Zygisk](https://img.shields.io/badge/Magisk%20&%20Zygisk-TERDETEKSI-critical?style=flat-square)
+![Cheat Cloak](https://img.shields.io/badge/Cheat%20Cloak%20Scanner-Aman-informational?style=flat-square)
+![Non Root](https://img.shields.io/badge/No%20Root-Diperlukan-green?style=flat-square)
 
-◆ CHEAT DETECTION:
-  - GameGuardian
-  - Speed Hacks
-  - APK Modifications
-  - Memory Editors
+> **BASS ROOT CHECKER** adalah alat pendeteksi root tersembunyi tingkat lanjut, dirancang untuk mendeteksi berbagai bentuk modifikasi sistem Android yang disembunyikan menggunakan teknik modern seperti Zygisk, Shamiko, KernelSU, dan modul-modul seperti LSPosed, SUSFS, Game Guardian, dll.
 
-◆ REAL-TIME PROTECTION:
-  - Auto Ban System
-  - Process Termination
-  - Integrity Checks
-  - HWID Blacklisting
+---
 
-[QUICK START EXAMPLE]
-from bass_anticheat import Detector
+## ✨ Fitur Utama
 
-detector = Detector(
-    deep_scan=True,
-    obfuscation=True,
-    auto_ban=True
-)
+- ✅ Deteksi **root tersembunyi** (termasuk Zygisk, Shamiko, KernelSU)
+- ✅ Deteksi **Magisk**, **Xposed**, **LSPosed**, **SUSFS**
+- ✅ Deteksi keberadaan **Game Guardian**, Cheat Engine, dan tools sejenis
+- ✅ Hasil scan disimpan otomatis dalam file `.txt`
+- ✅ Tidak membutuhkan akses root
+- ✅ Bisa dijalankan di **Termux** (versi ELF)
+- ✅ Versi Android (APK) dengan tampilan ringan dan mudah dipahami
 
-if detector.analyze():
-    print("CHEATER DETECTED - TAKING ACTION")
-    detector.punish()
-else:
-    print("CLEAN SYSTEM")
+---
 
-[DETECTION LEVELS]
-GREEN  - SAFE       (No threats detected)
-YELLOW - WARNING    (Suspicious activity)
-RED    - DANGER     (Confirmed cheating)
-PURPLE - BYPASS     (Detection evasion)
+## 📦 Struktur File
 
-[STATISTICS]
-Detection Accuracy: 95.7%
-False Positives: 0.3% 
-Performance Impact: 12%
+```
+📁 BASS_ROOT_CHECKER/
+├── BASS_ROOTCHECK_FINAL.elf        # Versi ELF untuk Termux
+├── bass-root-checker.apk           # Versi APK Android
+├── /output/
+│   └── scan_result.txt             # Hasil scan otomatis
+├── README.md                       # Dokumentasi ini
+```
 
-NOTE: This tool is designed for fair play enforcement.
-WARNING: Using cheat tools violates game TOS.
+---
 
-LICENSE: GPL-3.0 | © 2023 Bass Security Team
+## 🧪 Cara Jalankan (Versi Termux)
+
+```bash
+chmod +x BASS_ROOTCHECK_FINAL.elf
+./BASS_ROOTCHECK_FINAL.elf
+```
+
+Hasil akan disimpan otomatis ke: `output/scan_result.txt`
+
+---
+
+## 📋 Penjelasan Deteksi
+
+| Komponen               | Status Deteksi                 |
+|------------------------|-------------------------------|
+| Root (umum)            | ✅ Bisa terdeteksi             |
+| Magisk / Zygisk        | ✅ Termasuk modul tersembunyi  |
+| Shamiko / SUSFS        | ✅ Teridentifikasi otomatis    |
+| KernelSU               | ✅ Termasuk versi terbaru      |
+| Game Guardian / CE     | ✅ Dicari lewat jejak & proses |
+| Modul Xposed / LSPosed | ✅ Dicari lewat mount & file   |
+
+---
+
+## 💡 Kegunaan
+
+- Deteksi manipulasi sistem pada HP pengguna
+- Cek keamanan untuk aplikasi sensitif (bank, game, dll)
+- Menemukan jejak root atau cheat meskipun disembunyikan
+- Alat bantu debugging dan audit sistem
+
+---
+
+## 🛠 Teknologi
+
+- Bahasa C/C++ (versi ELF)
+- Java Android (versi APK)
+- Deep scan file system & process
+- Tanpa akses root
+
+---
+
+## 👤 Developer
+
+**BASS TEAM**  
+🛠️ Sejak 2025  
+📍 Indonesia
+
+---
+
+## 📄 Lisensi
+
+Proyek ini menggunakan lisensi **MIT**.  
+Bebas digunakan dan dimodifikasi, dengan tetap mencantumkan kredit.
+
+---
