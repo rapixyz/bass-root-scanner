@@ -38,7 +38,7 @@ void show_loading(const char* text) {
 // ================ DETEKSI UTAMA ================ //
 
 // [1] TRACEPID CHECK (Anti-Debug)
-void check_tracepid() {
+int check_tracepid() {
     show_loading("TRACEPID CHECK");
     FILE* status = fopen("/proc/self/status", "r");
     if(status) {
@@ -49,85 +49,112 @@ void check_tracepid() {
                 if(pid != 0) {
                     printf(RED "[✗] Debugger Attached (PID: %d)\n" RESET, pid);
                     fclose(status);
-                    return;
+                    return 1;
                 }
             }
         }
         fclose(status);
     }
     printf(GREEN "[✓] No Debugger Detected\n" RESET);
+    return 0;
 }
 
 // [2] MEMCMP ANTI-HOOKING
-void check_memcmp_hooking() {
+int check_memcmp_hooking() {
     show_loading("MEMCMP HOOK CHECK");
     void* memcmp_addr = dlsym(RTLD_NEXT, "memcmp");
     unsigned char* bytes = (unsigned char*)memcmp_addr;
     
-    // Deteksi instruksi JMP (0xE9) atau CALL (0xE8)
     if(bytes[0] == 0xE9 || bytes[0] == 0xE8) {
         printf(RED "[✗] memcmp() Hooked (JMP Detected)\n" RESET);
-        return;
+        return 1;
     }
     printf(GREEN "[✓] memcmp(): Clean\n" RESET);
+    return 0;
 }
 
 // [3] MEMORY SCANNING
-void check_memory_anomalies() {
+int check_memory_anomalies() {
     show_loading("MEMORY SCANNING");
     FILE* maps = fopen("/proc/self/maps", "r");
     if(!maps) {
         printf(YELLOW "[!] Cannot access memory maps\n" RESET);
-        return;
+        return 0;
     }
 
     int found = 0;
     char line[256];
     while(fgets(line, sizeof(line), maps)) {
-        if(strstr(line, "rwxp") || 
-           strstr(line, "magisk") || 
-           strstr(line, "riru")) {
+        if(strstr(line, "rwxp") || strstr(line, "magisk") || strstr(line, "riru")) {
             printf(RED "[✗] Suspicious Memory: %s" RESET, line);
             found = 1;
         }
     }
     fclose(maps);
     
-    if(!found) printf(GREEN "[✓] Memory: Clean\n" RESET);
+    if(!found) {
+        printf(GREEN "[✓] Memory: Clean\n" RESET);
+        return 0;
+    }
+    return 1;
 }
 
 // [4] JNI CALL CHECK
-void check_jni_abuse() {
+int check_jni_abuse() {
     show_loading("JNI CALL CHECK");
     void* get_created_java_vms = dlsym(RTLD_DEFAULT, "JNI_GetCreatedJavaVMs");
     unsigned char* bytes = (unsigned char*)get_created_java_vms;
     
     if(bytes[0] == 0xE9 || bytes[0] == 0x0F) {
         printf(RED "[✗] JNI Function Hooked\n" RESET);
-        return;
+        return 1;
     }
+    
+    FILE* maps = fopen("/proc/self/maps", "r");
+    if(maps) {
+        char line[256];
+        while(fgets(line, sizeof(line), maps)) {
+            if(strstr(line, "com.topjohnwu.magisk") || strstr(line, "libriru.so")) {
+                printf(RED "[✗] Suspicious JNI Library: %s" RESET, line);
+                fclose(maps);
+                return 1;
+            }
+        }
+        fclose(maps);
+    }
+    
     printf(GREEN "[✓] JNI: Clean\n" RESET);
+    return 0;
 }
 
 // [5] SYSTEM PROPERTIES
-void check_system_properties() {
+int check_system_properties() {
     show_loading("SYSTEM PROPERTIES");
     char value[PROP_VALUE_MAX];
+    int found = 0;
     
     __system_property_get("ro.debuggable", value);
     if(strcmp(value, "1") == 0) {
         printf(RED "[✗] ro.debuggable=1 (Debug Mode)\n" RESET);
+        found = 1;
     }
     
     __system_property_get("ro.secure", value);
     if(strcmp(value, "0") == 0) {
         printf(RED "[✗] ro.secure=0 (Insecure)\n" RESET);
+        found = 1;
     }
     
     __system_property_get("ro.build.tags", value);
     if(strstr(value, "test-keys")) {
         printf(RED "[✗] Build with test-keys\n" RESET);
+        found = 1;
     }
+    
+    if(!found) {
+        printf(GREEN "[✓] System Properties: Normal\n" RESET);
+    }
+    return found;
 }
 
 // ================ MAIN ================ //
@@ -141,21 +168,19 @@ int main() {
 
     int detected = 0;
     
-    // [DETEKSI BARU]
-    check_tracepid();
-    check_memcmp_hooking();
-    check_memory_anomalies();
-    check_jni_abuse();
-    check_system_properties();
+    detected += check_tracepid();
+    detected += check_memcmp_hooking();
+    detected += check_memory_anomalies();
+    detected += check_jni_abuse();
+    detected += check_system_properties();
     
-    // [PESAN FINAL - TIDAK DIUBAH]
     printf(CYAN "\n╔════════════════════════════════════════════╗\n");
     if(detected > 0) {
         printf(CYAN "║ " RED "FINAL: %d ROOT METHODS DETECTED!          ║\n", detected);
         printf(CYAN "║ " RED "HP LU KEBANYAKAN MODIF! WKWKWK NTT! 😈    ║\n");
     } else {
         printf(CYAN "║ " GREEN "FINAL: HP AMAN, NO ROOT DETECTED!       ║\n");
-        printf(CYAN "║ " GREEN "ATAU PAKAI MODULE HIDE LEVEL TINGGI !   ║\n");
+        printf(CYAN "║ " GREEN "ATAU PAKAI MANTAP INVISIBLE LEVEL 99!   ║\n");
     }
     printf(CYAN "╚════════════════════════════════════════════╝\n" RESET);
 
