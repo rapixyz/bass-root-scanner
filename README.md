@@ -6,74 +6,61 @@
 ![Cheat Cloak](https://img.shields.io/badge/Cheat%20Cloak%20Scanner-Aman-informational?style=flat-square)
 ![Non Root](https://img.shields.io/badge/No%20Root-Diperlukan-green?style=flat-square)
 
-> **BASS ROOT CHECKER** adalah alat pendeteksi root tersembunyi tingkat lanjut, dirancang untuk mendeteksi berbagai bentuk modifikasi sistem Android yang disembunyikan menggunakan teknik modern seperti Zygisk, Shamiko, KernelSU, dan modul-modul seperti LSPosed, SUSFS, Game Guardian, dll.
+> 🛡️ **BASS ROOT CHECKER** adalah alat pendeteksi root tersembunyi tingkat lanjut, dirancang untuk mengungkap manipulasi sistem Android yang disembunyikan menggunakan teknik modern seperti Zygisk, Shamiko, KernelSU, LSPosed, SUSFS, dan tools cheat seperti Game Guardian.
+
+---
+
+## 💣 Buat Kamu yang Curang...
+
+> **Main jujur itu keren.**  
+> Tapi kalau kamu pake cheat dan ketahuan sama alat ini, ya...  
+> _"Terima nasib, bro. Skill gak bisa disuntik pake script."_  
+>  
+> 🎯 Aplikasi ini diciptakan khusus untuk mendeteksi pemain Free Fire yang **curang**, nyamar di balik modul cheat, dan pura-pura jago.  
+>  
+> Kami tidak cari ribut, cuma bantu _bersihkan sampah_ dari komunitas.
 
 ---
 
 ## ✨ Fitur Utama
 
-- ✅ Deteksi **root tersembunyi** (termasuk Zygisk, Shamiko, KernelSU)
-- ✅ Deteksi **Magisk**, **Xposed**, **LSPosed**, **SUSFS**
-- ✅ Deteksi keberadaan **Game Guardian**, Cheat Engine, dan tools sejenis
-- ✅ Hasil scan disimpan otomatis dalam file `.txt`
-- ✅ Tidak membutuhkan akses root
-- ✅ Bisa dijalankan di **Termux** (versi ELF)
-- ✅ Versi Android (APK) dengan tampilan ringan dan mudah dipahami
-
----
-
-## 📦 Struktur File
-
-```
-📁 BASS_ROOT_CHECKER/
-├── BASS_ROOTCHECK_FINAL.elf        # Versi ELF untuk Termux
-├── bass-root-checker.apk           # Versi APK Android
-├── /output/
-│   └── scan_result.txt             # Hasil scan otomatis
-├── README.md                       # Dokumentasi ini
-```
-
----
-
-## 🧪 Cara Jalankan (Versi Termux)
-
-```bash
-chmod +x BASS_ROOTCHECK_FINAL.elf
-./BASS_ROOTCHECK_FINAL.elf
-```
-
-Hasil akan disimpan otomatis ke: `output/scan_result.txt`
+🌟 Deteksi **root tersembunyi** (Zygisk, Shamiko, KernelSU)  
+🌟 Deteksi **Magisk**, **Xposed**, **LSPosed**, **SUSFS**  
+🌟 Deteksi **Game Guardian**, Cheat Engine, dan tools serupa  
+🌟 Tidak membutuhkan akses root  
+🌟 Simpan hasil scan otomatis ke file `.txt`  
+🌟 Versi ELF untuk Termux & versi APK Android
 
 ---
 
 ## 📋 Penjelasan Deteksi
 
-| Komponen               | Status Deteksi                 |
-|------------------------|-------------------------------|
-| Root (umum)            | ✅ Bisa terdeteksi             |
-| Magisk / Zygisk        | ✅ Termasuk modul tersembunyi  |
-| Shamiko / SUSFS        | ✅ Teridentifikasi otomatis    |
-| KernelSU               | ✅ Termasuk versi terbaru      |
-| Game Guardian / CE     | ✅ Dicari lewat jejak & proses |
-| Modul Xposed / LSPosed | ✅ Dicari lewat mount & file   |
+| 🔧 Komponen               | ✅ Status Deteksi              |
+|---------------------------|-------------------------------|
+| Root (umum)               | ✔️ Bisa terdeteksi             |
+| Magisk / Zygisk           | ✔️ Termasuk modul tersembunyi  |
+| Shamiko / SUSFS           | ✔️ Teridentifikasi otomatis    |
+| KernelSU                  | ✔️ Termasuk versi terbaru      |
+| Game Guardian / CE        | ✔️ Jejak & proses terdeteksi   |
+| Modul Xposed / LSPosed    | ✔️ Lewat file dan mount        |
 
 ---
 
 ## 💡 Kegunaan
 
-- Deteksi manipulasi sistem pada HP pengguna
-- Cek keamanan untuk aplikasi sensitif (bank, game, dll)
-- Menemukan jejak root atau cheat meskipun disembunyikan
-- Alat bantu debugging dan audit sistem
+🔐 Cek keamanan HP dari root tersembunyi  
+🎮 Lindungi aplikasi dari manipulasi sistem dan cheat  
+🧪 Bantu audit sistem Android dengan akurat  
+💻 Cocok untuk developer, peneliti, dan pengguna kritis
 
 ---
 
 ## 🛠 Teknologi
 
-- Bahasa C/C++ (versi ELF)
-- Java Android (versi APK)
-- Deep scan file system & process
-- Tanpa akses root
+- ⚙️ Bahasa C/C++ (ELF)
+- 📱 Java Android (APK)
+- 🔎 Teknik deep-scan file system & proses
+- ❌ Tanpa akses root
 
 ---
 
@@ -88,6 +75,6 @@ Hasil akan disimpan otomatis ke: `output/scan_result.txt`
 ## 📄 Lisensi
 
 Proyek ini menggunakan lisensi **MIT**.  
-Bebas digunakan dan dimodifikasi, dengan tetap mencantumkan kredit.
+Bebas digunakan dan dimodifikasi, selama tetap mencantumkan kredit.
 
 ---
