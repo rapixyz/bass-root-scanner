@@ -1,15 +1,16 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <dlfcn.h>
+#include <sys/system_properties.h>
 #include <fcntl.h>
 #include <linux/input.h>
 #include <sys/ioctl.h>
+#include <jni.h>
 
-// ================ WARNA EKSTRIM ================ //
+// ================ WARNA & UI ================ //
 #define RED "\x1B[1;31m"
 #define GREEN "\x1B[1;32m"
 #define YELLOW "\x1B[1;33m"
@@ -28,7 +29,7 @@ void show_loading(const char* text) {
     for(int i=0; i<15; i++) {
         printf(RED "■ " RESET);
         fflush(stdout);
-        usleep(100000); // 1.5 detik total
+        usleep(100000);
     }
     
     printf(BLUE "║\n╚════════════════════════════════════════════╝\n" RESET);
@@ -36,166 +37,100 @@ void show_loading(const char* text) {
 
 // ================ DETEKSI UTAMA ================ //
 
-// [1] MAGISK & MODULE DETECTION
-int check_magisk() {
-    show_loading("SCANNING MAGISK");
-    char* magisk_paths[] = {
-        "/sbin/.magisk", "/data/adb/magisk", 
-        "/cache/.disable_magisk", "/data/magisk",
-        "/data/adb/modules"
-    };
-    
-    for(int i=0; i<5; i++) {
-        if(access(magisk_paths[i], F_OK) == 0) {
-            printf(RED "[✗] Magisk: %s (DETECTED!)\n" RESET, magisk_paths[i]);
-            return 1;
-        }
-    }
-    printf(GREEN "[✓] Magisk: Clean\n" RESET);
-    return 0;
-}
-
-// [2] SUPERUSER BINARY CHECK
-int check_su_binary() {
-    show_loading("CHECKING SU BINARY");
-    char* su_paths[] = {
-        "/system/bin/su", "/system/xbin/su",
-        "/sbin/su", "/data/local/su",
-        "/system/bin/.ext/su"
-    };
-    
-    for(int i=0; i<5; i++) {
-        if(access(su_paths[i], F_OK) == 0) {
-            printf(RED "[✗] SU Binary: %s (DETECTED!)\n" RESET, su_paths[i]);
-            return 1;
-        }
-    }
-    printf(GREEN "[✓] SU Binary: Clean\n" RESET);
-    return 0;
-}
-
-// [3] EMULATOR DETECTION
-int check_emulator() {
-    show_loading("DETECTING EMULATOR");
-    FILE* fp = fopen("/proc/cpuinfo", "r");
-    if(fp) {
-        char line[256];
-        while(fgets(line, sizeof(line), fp)) {
-            if(strstr(line, "qemu") || strstr(line, "emulator")) {
-                printf(RED "[✗] Emulator: QEMU Detected!\n" RESET);
-                fclose(fp);
-                return 1;
+// [1] TRACEPID CHECK (Anti-Debug)
+void check_tracepid() {
+    show_loading("TRACEPID CHECK");
+    FILE* status = fopen("/proc/self/status", "r");
+    if(status) {
+        char line[128];
+        while(fgets(line, sizeof(line), status)) {
+            if(strstr(line, "TracerPid:")) {
+                int pid = atoi(strchr(line, ':') + 1);
+                if(pid != 0) {
+                    printf(RED "[✗] Debugger Attached (PID: %d)\n" RESET, pid);
+                    fclose(status);
+                    return;
+                }
             }
         }
-        fclose(fp);
+        fclose(status);
     }
-    printf(GREEN "[✓] Emulator: Not Detected\n" RESET);
-    return 0;
+    printf(GREEN "[✓] No Debugger Detected\n" RESET);
 }
 
-// [4] KERNELSU DETECTION
-int check_kernelsu() {
-    show_loading("SCANNING KERNELSU");
-    if(access("/data/adb/ksu", F_OK) == 0 || 
-       access("/system/bin/ksud", F_OK) == 0) {
-        printf(RED "[✗] KernelSU: Detected!\n" RESET);
-        return 1;
-    }
-    printf(GREEN "[✓] KernelSU: Clean\n" RESET);
-    return 0;
-}
-
-// [5] APATCH DETECTION
-int check_apatch() {
-    show_loading("SCANNING APATCH");
-    if(access("/data/adb/ap", F_OK) == 0 || 
-       access("/data/adb/apd", F_OK) == 0) {
-        printf(RED "[✗] APatch: Detected!\n" RESET);
-        return 1;
-    }
-    printf(GREEN "[✓] APatch: Clean\n" RESET);
-    return 0;
-}
-
-// [6] XPOSED DETECTION
-int check_xposed() {
-    show_loading("CHECKING XPOSED");
-    if(dlopen("libxposed_art.so", RTLD_NOW) != NULL || 
-       access("/system/framework/XposedBridge.jar", F_OK) == 0) {
-        printf(RED "[✗] Xposed: Detected!\n" RESET);
-        return 1;
-    }
-    printf(GREEN "[✓] Xposed: Clean\n" RESET);
-    return 0;
-}
-
-// [7] FRIDA DETECTION
-int check_frida() {
-    show_loading("SCANNING FRIDA");
-    if(dlopen("libfrida-gadget.so", RTLD_NOW) != NULL || 
-       access("/data/local/tmp/re.frida.server", F_OK) == 0) {
-        printf(RED "[✗] Frida: Detected!\n" RESET);
-        return 1;
-    }
-    printf(GREEN "[✓] Frida: Clean\n" RESET);
-    return 0;
-}
-
-// [8] SELINUX STATUS
-int check_selinux() {
-    show_loading("CHECKING SELINUX");
-    FILE* fp = popen("getenforce", "r");
-    if(fp) {
-        char status[16];
-        if(fgets(status, sizeof(status), fp)) {
-            if(strstr(status, "Permissive") || strstr(status, "Disabled")) {
-                printf(RED "[✗] SELinux: %s (WEAK!)\n" RESET, status);
-                pclose(fp);
-                return 1;
-            }
-        }
-        pclose(fp);
-    }
-    printf(GREEN "[✓] SELinux: Enforcing\n" RESET);
-    return 0;
-}
-
-// [9] BANKING TROJAN SCAN
-int check_banking_trojans() {
-    show_loading("SCANNING BANKING TROJANS");
-    char* trojans[] = {
-        "com.cerberus", "com.spyware.banker",
-        "com.gustavo.dropper", "com.ahmad.root"
-    };
+// [2] MEMCMP ANTI-HOOKING
+void check_memcmp_hooking() {
+    show_loading("MEMCMP HOOK CHECK");
+    void* memcmp_addr = dlsym(RTLD_NEXT, "memcmp");
+    unsigned char* bytes = (unsigned char*)memcmp_addr;
     
-    for(int i=0; i<4; i++) {
-        char cmd[128];
-        sprintf(cmd, "pm list packages | grep %s", trojans[i]);
-        FILE* fp = popen(cmd, "r");
-        if(fp && fgetc(fp) != EOF) {
-            printf(RED "[✗] Trojan: %s Found!\n" RESET, trojans[i]);
-            pclose(fp);
-            return 1;
+    // Deteksi instruksi JMP (0xE9) atau CALL (0xE8)
+    if(bytes[0] == 0xE9 || bytes[0] == 0xE8) {
+        printf(RED "[✗] memcmp() Hooked (JMP Detected)\n" RESET);
+        return;
+    }
+    printf(GREEN "[✓] memcmp(): Clean\n" RESET);
+}
+
+// [3] MEMORY SCANNING
+void check_memory_anomalies() {
+    show_loading("MEMORY SCANNING");
+    FILE* maps = fopen("/proc/self/maps", "r");
+    if(!maps) {
+        printf(YELLOW "[!] Cannot access memory maps\n" RESET);
+        return;
+    }
+
+    int found = 0;
+    char line[256];
+    while(fgets(line, sizeof(line), maps)) {
+        if(strstr(line, "rwxp") || 
+           strstr(line, "magisk") || 
+           strstr(line, "riru")) {
+            printf(RED "[✗] Suspicious Memory: %s" RESET, line);
+            found = 1;
         }
-        pclose(fp);
     }
-    printf(GREEN "[✓] Banking Trojans: Clean\n" RESET);
-    return 0;
+    fclose(maps);
+    
+    if(!found) printf(GREEN "[✓] Memory: Clean\n" RESET);
 }
 
-// [10] FAKE GPS DETECTION
-int check_fake_gps() {
-    show_loading("CHECKING FAKE GPS");
-    if(access("/data/mockgps", F_OK) == 0 || 
-       access("/system/app/FakeGps", F_OK) == 0) {
-        printf(RED "[✗] Fake GPS: Detected!\n" RESET);
-        return 1;
+// [4] JNI CALL CHECK
+void check_jni_abuse() {
+    show_loading("JNI CALL CHECK");
+    void* get_created_java_vms = dlsym(RTLD_DEFAULT, "JNI_GetCreatedJavaVMs");
+    unsigned char* bytes = (unsigned char*)get_created_java_vms;
+    
+    if(bytes[0] == 0xE9 || bytes[0] == 0x0F) {
+        printf(RED "[✗] JNI Function Hooked\n" RESET);
+        return;
     }
-    printf(GREEN "[✓] Fake GPS: Clean\n" RESET);
-    return 0;
+    printf(GREEN "[✓] JNI: Clean\n" RESET);
 }
 
-// ================ MAIN FUNCTION ================ //
+// [5] SYSTEM PROPERTIES
+void check_system_properties() {
+    show_loading("SYSTEM PROPERTIES");
+    char value[PROP_VALUE_MAX];
+    
+    __system_property_get("ro.debuggable", value);
+    if(strcmp(value, "1") == 0) {
+        printf(RED "[✗] ro.debuggable=1 (Debug Mode)\n" RESET);
+    }
+    
+    __system_property_get("ro.secure", value);
+    if(strcmp(value, "0") == 0) {
+        printf(RED "[✗] ro.secure=0 (Insecure)\n" RESET);
+    }
+    
+    __system_property_get("ro.build.tags", value);
+    if(strstr(value, "test-keys")) {
+        printf(RED "[✗] Build with test-keys\n" RESET);
+    }
+}
+
+// ================ MAIN ================ //
 int main() {
     printf(PURPLE "\n\n██████╗ █████╗ ███████╗███████╗███████╗\n");
     printf(PURPLE "██╔══██╗██╔══██╗██╔════╝██╔════╝██╔════╝\n");
@@ -205,24 +140,22 @@ int main() {
     printf(PURPLE "╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝\n\n" RESET);
 
     int detected = 0;
-    detected += check_magisk();
-    detected += check_su_binary();
-    detected += check_emulator();
-    detected += check_kernelsu();
-    detected += check_apatch();
-    detected += check_xposed();
-    detected += check_frida();
-    detected += check_selinux();
-    detected += check_banking_trojans();
-    detected += check_fake_gps();
-
+    
+    // [DETEKSI BARU]
+    check_tracepid();
+    check_memcmp_hooking();
+    check_memory_anomalies();
+    check_jni_abuse();
+    check_system_properties();
+    
+    // [PESAN FINAL - TIDAK DIUBAH]
     printf(CYAN "\n╔════════════════════════════════════════════╗\n");
     if(detected > 0) {
         printf(CYAN "║ " RED "FINAL: %d ROOT METHODS DETECTED!          ║\n", detected);
         printf(CYAN "║ " RED "HP LU KEBANYAKAN MODIF! WKWKWK NTT! 😈    ║\n");
     } else {
         printf(CYAN "║ " GREEN "FINAL: HP AMAN, NO ROOT DETECTED!       ║\n");
-        printf(CYAN "║ " GREEN "ATAU PAKAI MODULE HIDE      LEVEL 99!   ║\n");
+        printf(CYAN "║ " GREEN "ATAU PAKAI MODULE HIDE LEVEL TINGGI !   ║\n");
     }
     printf(CYAN "╚════════════════════════════════════════════╝\n" RESET);
 
