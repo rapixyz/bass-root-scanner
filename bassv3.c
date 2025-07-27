@@ -222,7 +222,7 @@ int main() {
         printf(CYAN "║ " RED "HP LU KEBANYAKAN MODIF! WKWKWK NTT! 😈    ║\n");
     } else {
         printf(CYAN "║ " GREEN "FINAL: HP AMAN, NO ROOT DETECTED!       ║\n");
-        printf(CYAN "║ " GREEN "ATAU PAKAI MANTAP INVISIBLE LEVEL 99!   ║\n");
+        printf(CYAN "║ " GREEN "ATAU PAKAI MODULE HIDE      LEVEL 99!   ║\n");
     }
     printf(CYAN "╚════════════════════════════════════════════╝\n" RESET);
 
