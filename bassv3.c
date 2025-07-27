@@ -102,12 +102,14 @@ int check_memory_anomalies() {
 // [4] JNI CALL CHECK
 int check_jni_abuse() {
     show_loading("JNI CALL CHECK");
+    int found = 0;
+    
     void* get_created_java_vms = dlsym(RTLD_DEFAULT, "JNI_GetCreatedJavaVMs");
     unsigned char* bytes = (unsigned char*)get_created_java_vms;
     
     if(bytes[0] == 0xE9 || bytes[0] == 0x0F) {
         printf(RED "[✗] JNI Function Hooked\n" RESET);
-        return 1;
+        found = 1;
     }
     
     FILE* maps = fopen("/proc/self/maps", "r");
@@ -116,15 +118,16 @@ int check_jni_abuse() {
         while(fgets(line, sizeof(line), maps)) {
             if(strstr(line, "com.topjohnwu.magisk") || strstr(line, "libriru.so")) {
                 printf(RED "[✗] Suspicious JNI Library: %s" RESET, line);
-                fclose(maps);
-                return 1;
+                found = 1;
             }
         }
         fclose(maps);
     }
     
-    printf(GREEN "[✓] JNI: Clean\n" RESET);
-    return 0;
+    if(!found) {
+        printf(GREEN "[✓] JNI: Clean\n" RESET);
+    }
+    return found;
 }
 
 // [5] SYSTEM PROPERTIES
