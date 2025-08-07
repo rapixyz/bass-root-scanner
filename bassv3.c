@@ -62,30 +62,190 @@ void fake_scan_animation() {
     }
 
     printf("\n+------------------------------------------+\n");
-    printf("|  %-40s  |\n", decrypt_string(0)); 
+    printf("|  %-40s  |\n", decrypt_string(0)); // 
     printf("+------------------------------------------+\n");
-    printf("| %-40s |\n", decrypt_string(1)); 
+    printf("| %-40s |\n", decrypt_string(1)); // STATUS : SCANNING (20-30 DETIK)
     printf("+------------------------------------------+\n");
     
     usleep(500000);
-    printf("| %-40s |\n", decrypt_string(2)); 
+    printf("| %-40s |\n", decrypt_string(2)); // [✓] SYSTEM ANALYSIS DONE
     usleep(300000);
-    printf("| %-40s |\n", decrypt_string(3)); 
+    printf("| %-40s |\n", decrypt_string(3)); // [✓] CHECKING FILES, SYMLINKS, BINARY
     usleep(400000);
-    printf("| %-40s |\n", decrypt_string(4)); 
+    printf("| %-40s |\n", decrypt_string(4)); // [✓] DETECTING ROOT HIDING MODULES
     usleep(600000);
-    printf("| %-40s |\n", decrypt_string(5)); 
+    printf("| %-40s |\n", decrypt_string(5)); // [!] ROOT DETECTED
     usleep(200000);
-    printf("| %-40s |\n", decrypt_string(6)); 
+    printf("| %-40s |\n", decrypt_string(6)); // [!] MODULE: Zygisk, Shamiko, MagiskHide
     usleep(300000);
-    printf("| %-40s |\n", decrypt_string(7)); 
+    printf("| %-40s |\n", decrypt_string(7)); // [!] INTEGRITY BYPASS DETECTED
     printf("+------------------------------------------+\n");
-    printf("| %-40s |\n", decrypt_string(8)); 
+    printf("| %-40s |\n", decrypt_string(8)); // RESULT : DEVICE COMPROMISED (ROOT DETECTED)
     printf("+------------------------------------------+\n\n");
 }
 
-// Rest of the code remains the same as before...
-[Previous implementation of detect_magisk(), detect_banking_bypass(), and main()]
+
+
+int detect_magisk() {
+    int detected = 0;
+    int hide_level = 0;
+    
+    const char* magisk_paths[] = {
+        "/sbin/.magisk",
+        "/sbin/magisk",
+        "/cache/.disable_magisk",
+        "/cache/magisk.log",
+        "/data/adb/magisk",
+        "/data/adb/modules",
+        NULL
+    };
+    
+    for(int i = 0; magisk_paths[i]; i++) {
+        if(access(magisk_paths[i], F_OK) == 0) {
+            detected = 1;
+            hide_level = 1;
+        }
+    }
+    
+    FILE* mounts = fopen("/proc/self/mounts", "r");
+    if(mounts) {
+        char line[512];
+        while(fgets(line, sizeof(line), mounts)) {
+            if(strstr(line, "magisk") || strstr(line, "core/mirror")) {
+                detected = 1;
+                hide_level = 1;
+            }
+        }
+        fclose(mounts);
+    }
+    
+    char value[PROP_VALUE_MAX];
+    __system_property_get("ro.boot.verifiedbootstate", value);
+    if(strcmp(value, "orange") == 0) {
+        detected = 1;
+        hide_level = 2;
+    }
+    
+    void* zygisk = dlopen("libzygisk.so", RTLD_NOW | RTLD_GLOBAL | RTLD_NOLOAD);
+    if(zygisk) {
+        detected = 1;
+        hide_level = 2;
+    }
+    
+    FILE* cmdline = fopen("/proc/self/cmdline", "r");
+    if(cmdline) {
+        char cmd[256];
+        if(fgets(cmd, sizeof(cmd), cmdline) {
+            if(strstr(cmd, "magisk") || strstr(cmd, "zygisk")) {
+                detected = 1;
+                hide_level = 2;
+            }
+        }
+        fclose(cmdline);
+    }
+    
+    void* riru = dlopen("libriru.so", RTLD_NOW | RTLD_GLOBAL | RTLD_NOLOAD);
+    if(riru) {
+        detected = 1;
+        hide_level = 2;
+    }
+    
+    if(access("/data/adb/modules/shamiko", F_OK) == 0) {
+        detected = 1;
+        hide_level = 2;
+    }
+    
+    void* lsplant = dlopen("liblsplant.so", RTLD_NOW | RTLD_GLOBAL | RTLD_NOLOAD);
+    if(lsplant) {
+        detected = 1;
+        hide_level = 2;
+    }
+    
+    return detected;
+}
+
+int detect_banking_bypass() {
+    int detected = 0;
+    
+    const char* bypass_modules[] = {
+        "/data/adb/modules/hide",
+        "/data/adb/modules/magiskhide",
+        "/data/adb/modules/safetynet",
+        "/data/adb/modules/universal",
+        "/data/adb/modules/zygisk",
+        "/data/adb/modules/riru",
+        NULL
+    };
+    
+    for(int i = 0; bypass_modules[i]; i++) {
+        if(access(bypass_modules[i], F_OK) == 0) {
+            detected = 1;
+        }
+    }
+    
+    FILE* xposed = fopen("/data/data/de.robv.android.xposed.installer/conf/modules.list", "r");
+    if(xposed) {
+        char line[256];
+        while(fgets(line, sizeof(line), xposed)) {
+            if(strstr(line, "bank") || strstr(line, "financial") || strstr(line, "safety")) {
+                detected = 1;
+            }
+        }
+        fclose(xposed);
+    }
+    
+    void* libc = dlopen("libc.so", RTLD_NOW);
+    if(libc) {
+        typedef int (*getprop_func)(const char*, char*);
+        getprop_func orig_getprop = (getprop_func)dlsym(libc, "__system_property_get");
+        
+        char value[PROP_VALUE_MAX];
+        orig_getprop("ro.build.tags", value);
+        if(strstr(value, "test-keys")) {
+            detected = 1;
+        }
+        
+        orig_getprop("ro.boot.verifiedbootstate", value);
+        if(strcmp(value, "green") != 0) {
+            detected = 1;
+        }
+        
+        dlclose(libc);
+    }
+    
+    void* fopen_addr = dlsym(RTLD_NEXT, "fopen");
+    unsigned char* bytes = (unsigned char*)fopen_addr;
+    if(bytes[0] == 0xE9 || bytes[0] == 0xE8) {
+        detected = 1;
+    }
+    
+    if(access("/data/data/com.google.android.gms/datasets/safetynet", F_OK) == 0) {
+        detected = 1;
+    }
+    
+    return detected;
+}
+
+// ================ MAIN FUNCTION ================ //
+
+int main() {
+    
+    fake_scan_animation();
+    
+    // Run real detection (but ignore results)
+    detect_magisk();
+    detect_banking_bypass();
+    
+    // Always show compromised result
+    printf("\n");
+    printf("+------------------------------------------+\n");
+    printf("| %-40s |\n", decrypt_string(9)); // FINAL: ROOT/BYPASS DETECTED!
+    printf("| %-40s |\n", decrypt_string(10)); // APLIKASI BANK MUNGKIN DIBYPASS!
+    printf("| %-40s |\n", decrypt_string(11)); // HP LU KEBANYAKAN MODIF! WKWKWK NTT!
+    printf("+------------------------------------------+\n");
+
+    return 0;
+}
 
 // Cleanup encrypted strings
 void __attribute__((destructor)) cleanup() {
